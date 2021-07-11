@@ -9,7 +9,7 @@ from tqdm import tqdm
 from functools import reduce
 from multiprocessing import Pool
 from itertools import repeat
-from utils import load_config, load_secrets, load_json, save_json
+from mlinvest.utils import load_config, load_secrets, load_json, save_json
 
 
 
