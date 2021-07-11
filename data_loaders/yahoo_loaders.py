@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import List, Optional, Union
-from utils import load_json
+from mlinvest.utils import load_json
 
 
 
