@@ -106,7 +106,7 @@ class TinkoffDownloader:
 class YahooDownloader:
   def __init__(self):
     self.secrets = load_secrets()
-    self.config = load_config
+    self.config = load_config()
   
   def parse_json_quarterly(self, json_data):
     data = []
