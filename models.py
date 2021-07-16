@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+
+
 def exponential_smoothing(series, alpha):
     result = [series[0]]
     for n in range(1, len(series)):
@@ -120,3 +124,52 @@ class HoltWinters:
             self.Smooth.append(smooth)
             self.Trend.append(trend)
             self.Season.append(seasonals[i % self.slen])
+
+            
+class Hedgebeta:
+      '''
+      Y. Freund, R. Schapire, “A Decision-Theoretic Generalization of on-Line Learning and an Application to Boosting”, 1995.
+      '''
+      def __init__(self, num_stocks, num_rounds):
+        self.total_rsrc = 1.0
+        self.wealth = []
+        self.total_wealth.append(1.0)
+
+        self.num_stocks = num_stocks
+        self.num_rounds = num_rounds
+
+        self.beta = np.sqrt(2.0 * np.log(num_stocks) / num_rounds)
+        self.wt = [1.0 / num_stocks] * num_stocks
+
+      def relevance_prices(self, dataframes):
+        price_rel_table = np.zeros(shape=(self.num_stocks, self.num_rounds))
+        k = 0
+        for df in dataframes:
+          price_rel_table[k] = np.array([round(df.iloc[i][0] / df.iloc[i][1], 6) \
+                                         for i in range(self.num_rounds)])
+          k += 1
+
+        max_price_rel = max([max(price_rel_table[k]) for k in range(self.num_stocks)])
+
+        return price_rel_table, max_price_rel
+
+      def fit(self, dataframes):
+        price_rel_table, max_price_rel = self.relevance_prices(dataframes)
+
+        for i in range(self.num_rounds):
+          allocation = [self.wt[j] * total_rsrc / sum(self.wt) for j in \
+                        range(self.num_stocks)]
+          current_price_rel_vector = price_rel_table[:, i]
+
+          total_rsrc = np.dot(allocation, current_price_rel_vector)
+          total_wealth.append(total_rsrc)
+
+          wt_update = [self.beta ** (max_price_rel - current_price_rel_vector[k]) \
+                       for k in range(self.num_stocks)]
+
+          self.wt = [self.wt[j] * wt_update[j] for j in range(self.num_stocks)]
+          if min(self.wt) < 0.001:
+            self.wt = [self.wt[j] * 1000 for j in range(self.num_stocks)]
+
+      def predict(self):
+        pass
