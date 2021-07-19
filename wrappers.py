@@ -160,3 +160,27 @@ class TimeSeriesOOfModel:
     return pred_df['pred'].values
   
  
+class Ensemble:
+    def __init__(self, models: List, bagging_size=0.8, num_models=20):
+        self.base_models = models
+        self.bagging_size = bagging_size
+        self.num_models = num_models
+        self.models = []
+    
+    def fit(self, x: pd.DataFrame, y: pd.Series):
+        for _ in tqdm(range(self.num_models)):
+          indexes = np.random.randint(0, len(x), int(len(x) * self.bagging_size))
+          current_model = deepcopy(np.random.choice(self.base_models))
+          current_model.fit(x.iloc[indexes], y.iloc[indexes])
+          self.models.append(current_model)
+      
+    def predict(self, x):
+        predictions = []
+        for i in range(self.num_models):
+          try:
+            model_pred = self.models[i].predict_proba(x)[:, 1]
+          except:
+            model_pred = self.models[i].predict(x)
+          
+          preds.append(model_pred)
+        return np.mean(preds, axis=0)
