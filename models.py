@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from typing import Tuple
 
 
 def exponential_smoothing(series, alpha):
@@ -173,3 +174,125 @@ class Hedgebeta:
 
       def predict(self):
         pass
+
+    
+def nelder_mead(
+    f,
+    x_start,
+    step_for_simplex = 0.1,
+    no_improv_break=10,
+    max_iter=0,
+    alpha=1.,
+    gamma=2.,
+    rho=-0.5,
+    sigma=0.5
+) -> Tuple[np.array, float]:
+    '''
+    https://people.duke.edu/~hpgavin/cee201/Nelder+Mead-ComputerJournal-1965.pdf
+    Args:
+        f (Callable): function to call
+        x_start (np.ndarray): array of shape (n), initial value for algo
+        step_for_simplex (float): value for samplex vertices around x_start
+        no_improv_break (int): break after no_improv_break iterations 
+            without improvement
+        max_iter (int): maximum number of iters in algo
+        
+        alpha (float): reflection param
+        gamma (float): expansion param
+        rho (float): compression param
+        sigma (float): reduction param
+
+    Returns:
+        Tuple[np.array, float]: (best parameter array, best score)
+    '''
+    # init
+    space_dim = len(x_start)
+    prev_best_score = f(x_start)
+    steps_with_no_improv = 0
+    simplex = [[x_start, prev_best_score]]
+    
+    simplex_story = []
+    
+
+    # sapmle simplex
+    for i in range(space_dim):
+        x = x_start.copy()
+        x[i] = x[i] + step_for_simplex
+        score = f(x)
+        simplex.append([x, score])
+
+    # simplex iter
+    iters = 0
+
+    pbar = tqdm(range(max_iter))
+    for _ in pbar:
+        # order
+        simplex.sort(key=lambda x: x[1])
+        simplex_story.append(copy.copy(simplex))
+        
+        best_score = simplex[0][1]
+
+        # break after max_iter
+        if iters >= max_iter:
+            return (*simplex[0], simplex_story)
+        iters += 1
+
+        pbar.set_description(f'Best score: {best_score}')
+
+        if best_score < prev_best_score:
+            steps_with_no_improv = 0
+            prev_best_score = best_score
+        else:
+            steps_with_no_improv += 1
+
+        if steps_with_no_improv >= no_improv_break:
+            return (*simplex[0], simplex_story)
+
+        # centroid
+        center_of_mass = [0.] * space_dim
+        for x_vector, _ in simplex[:-1]:
+            for idx, value in enumerate(x_vector):
+                center_of_mass[idx] += value / (len(simplex)-1)
+
+                
+        delta_vector = center_of_mass - simplex[-1][0]
+        
+        # reflection
+        x_reflection = center_of_mass + alpha * delta_vector
+        reflection_score = f(x_reflection)
+        
+        if best_score <= reflection_score < simplex[-2][1]:
+            del simplex[-1]
+            simplex.append([x_reflection, reflection_score])
+            continue
+
+        # expansion
+        if reflection_score < best_score:
+            x_expansion = center_of_mass + gamma * delta_vector
+            expansion_score = f(x_expansion)
+            if expansion_score < reflection_score:
+                del simplex[-1]
+                simplex.append([x_expansion, expansion_score])
+                continue
+            else:
+                del simplex[-1]
+                simplex.append([x_reflection, reflection_score])
+                continue
+
+        # compression
+        x_compression = center_of_mass + rho * delta_vector
+        compression_score = f(x_compression)
+        if compression_score < simplex[-1][1]:
+            del simplex[-1]
+            simplex.append([x_compression, compression_score])
+            continue
+
+        # reduction
+        best_x = simplex[0][0]
+        new_simplex = [simplex[0]]
+        for x_vector, _ in simplex[1:]:
+            x_reduction = best_x + sigma * (x_vector - best_x)
+            reduction_score = f(x_reduction)
+            new_simplex.append([x_reduction, reduction_score])
+        simplex = new_simplex
+    return simplex
