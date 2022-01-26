@@ -1,10 +1,22 @@
 import json
 import os
+from os import listdir
+from os.path import isfile, join
 import sys
 import hashlib
 import pandas as pd
 from copy import deepcopy
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+%matplotlib inline
+import datetime as dt
+import time
+import yfinance as yf
+import cufflinks as cf
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 
@@ -207,3 +219,28 @@ def _validate_covars(covars, covariance_type, n_components):
     else:
         raise ValueError("covariance_type must be one of " +
                          "'spherical', 'tied', 'diag', 'full'")
+
+        
+def get_column_from_csv(file, col_name):
+    try:
+        df = pd.read_csv(file)
+    except FileNotFoundError:
+        print(f"File {file} Doesn't Exist")
+    else:
+        return df[col_name]
+
+
+def save_to_csv_from_yahoo(folder, ticker, period='5y'):
+    stock = yf.Ticker(ticker)
+    
+    try:
+        print("Get Data for : ", ticker)
+        df = stock.history(period=period)
+    
+        time.sleep(2)
+
+        the_file = folder + ticker.replace(".", "_") + '.csv'
+        print(the_file, " Saved")
+        df.to_csv(the_file)
+    except Exception as ex:
+        print("Couldn't Get Data for:", ticker)
